@@ -12,32 +12,18 @@ namespace Simulation
 {
     public partial class Form1 : Form
     {
-        public const int SPEED_LIFE = 200;
-        public const sbyte PRICE_OF_SPROUTS = -2;
-        public const sbyte PRICE_OF_SEED = 1;
-        public const sbyte PRICE_OF_ASCEND = 2;
-        public const sbyte PRICE_OF_ALMOST_RIPE = 3;
-        public const sbyte PRICE_OF_RIPE = 5;
-        public const sbyte PRICE_OF_SPOILED = -2;
-
-        private Dictionary<Button, Cell> _field = new Dictionary<Button, Cell>();
         private Dictionary<Enums.State, Color> _colors = new Dictionary<Enums.State, Color>();
-        
-        private int _currentMoney = 100;
-        private ulong _currentTime = 0;
+
+        private GameEngine _gameEngine = null;
+
 
         public Form1()
         {
             InitializeComponent();
-            foreach (Button cb in splitContainer1.Panel2.Controls)
-            {
-                _field[cb] = new Cell();
-                cb.Text = $"Уровень спелости: {_field[cb].CurrentGrowth} \n"
-                    + $"Состояние: {_field[cb].State}";
-            }
+            _gameEngine = new GameEngine(splitContainer1);
             InitializationColors();
-            label1.Text = $"Прошло дней со старта: {_currentTime++}";
-            label2.Text = $"Текущий бюджет: {_currentMoney}";
+            label1.Text = $"Прошло дней со старта: {_gameEngine.CurrentTime++}";
+            label2.Text = $"Текущий бюджет: {_gameEngine.CurrentMoney}";
         }
 
         private void InitializationColors()
@@ -54,13 +40,15 @@ namespace Simulation
         private void UpdatePanel()
         {
             bool flag = false;
+            Dictionary<Button, Cell> field = _gameEngine.Field;
+
             foreach (Button cb in splitContainer1.Panel2.Controls)
             {
-                if (_field[cb].IsUpdate())
+                if (field[cb].IsUpdate())
                 {
                     flag = true;
                 }
-                if (_field[cb].State == Enums.State.Seeded)
+                if (field[cb].State == Enums.State.Seeded)
                 {
                     cb.ForeColor = Color.White;
                 }
@@ -68,8 +56,8 @@ namespace Simulation
                 {
                     cb.ForeColor = Color.Black;
                 }
-                cb.Text = $"Уровень спелости: {_field[cb].CurrentGrowth} \n"
-                   + $"Состояние: {_field[cb].State}";
+                cb.Text = $"Уровень спелости: {field[cb].CurrentGrowth} \n"
+                   + $"Состояние: {field[cb].State}";
             }
             if (flag)
             {
@@ -79,81 +67,34 @@ namespace Simulation
 
         private void DrawField()
         {
+            Dictionary<Button, Cell> field= _gameEngine.Field; 
             foreach (Button cb in splitContainer1.Panel2.Controls)
             {
-                cb.BackColor = _colors[_field[cb].State];
+                cb.BackColor = _colors[field[cb].State];
             }
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
             Button button = sender as Button;
-            if (_field[button].State == Enums.State.Empty)
+            if (_gameEngine.IsNeedToRedrawn(button))
             {
-                if (_currentMoney > 1)
-                {
-                    _field[button].Fill();
-                    _currentMoney += PRICE_OF_SPROUTS;
-                    button.BackColor = _colors[_field[button].State];
-                }
-                else
-                {
-                    MessageBox.Show("У вас закончились деньги! Если хотите продолжить, переведите 1 балл на мой аккаунт в GoogleClass");
-                }
-            }
-            else
-            {
-                SellTheProduct(_field[button].GetProduct());
                 DrawField();
             }
         }
 
-        private void SellTheProduct(Enums.State stateTheProduct)
-        {
-            switch (stateTheProduct)
-            {
-                case Enums.State.Seeded:
-                    _currentMoney += PRICE_OF_SEED;
-                    break;
-                case Enums.State.Ascended:
-                    _currentMoney += PRICE_OF_ASCEND;
-                    break;
-                case Enums.State.AlmostRipe:
-                    _currentMoney += PRICE_OF_ALMOST_RIPE;
-                    break;
-                case Enums.State.Ripe:
-                    _currentMoney += PRICE_OF_RIPE;
-                    break;
-                case Enums.State.Spoiled:
-                    _currentMoney += PRICE_OF_SPOILED;
-                    break;
-            }
-        }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
             UpdatePanel();
-            label1.Text = $"Прошло дней со старта: {_currentTime++}";
-            label2.Text = $"Текущий бюджет: {_currentMoney}";
+            label1.Text = $"Прошло дней со старта: {_gameEngine.CurrentTime++}";
+            label2.Text = $"Текущий бюджет: {_gameEngine.CurrentMoney}";
 
         }
 
         private void trackBar1_Scroll(object sender, EventArgs e)
         {
-            int currentSpeedLife = trackBar1.Value;
-            if (currentSpeedLife > 5)
-            {
-                timer1.Interval = SPEED_LIFE-(currentSpeedLife*7);
-            }
-            else if (currentSpeedLife < 5)
-            {
-                timer1.Interval = SPEED_LIFE * (5-currentSpeedLife);
-            }
-            else
-            {
-                timer1.Interval = SPEED_LIFE;
-            }
-
+            timer1.Interval = _gameEngine.GetSpeedOfLife(trackBar1.Value);
         }
     }
 }
