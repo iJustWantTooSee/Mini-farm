@@ -13,15 +13,28 @@ namespace Simulation
     public partial class Form1 : Form
     {
         private Dictionary<Enums.State, Color> _colors = new Dictionary<Enums.State, Color>();
-
+        private Dictionary<Button, int> _position = new Dictionary<Button, int>();
         private GameEngine _gameEngine = null;
 
 
         public Form1()
         {
             InitializeComponent();
-            _gameEngine = new GameEngine(splitContainer1);
             InitializationColors();
+
+            int countOfButton = 0;
+            foreach (Button cb in splitContainer1.Panel2.Controls)
+            {
+                _position.Add(cb,countOfButton++);
+                cb.Text = $"Уровень спелости: 0 \n"
+                    + $"Состояние: Empty";
+            }
+            
+            _gameEngine = new GameEngine(countOfButton);
+            
+            timer1.Interval = _gameEngine.GetSpeedOfLife(trackBar1.Value);
+            timer1.Start();
+            
             label1.Text = $"Прошло дней со старта: {_gameEngine.CurrentTime++}";
             label2.Text = $"Текущий бюджет: {_gameEngine.CurrentMoney}";
         }
@@ -40,15 +53,15 @@ namespace Simulation
         private void UpdatePanel()
         {
             bool flag = false;
-            Dictionary<Button, Cell> field = _gameEngine.Field;
+            Dictionary<int, Cell> field = _gameEngine.Field;
 
             foreach (Button cb in splitContainer1.Panel2.Controls)
             {
-                if (field[cb].IsUpdate())
+                if (field[_position[cb]].IsUpdate())
                 {
                     flag = true;
                 }
-                if (field[cb].State == Enums.State.Seeded)
+                if (field[_position[cb]].State == Enums.State.Seeded)
                 {
                     cb.ForeColor = Color.White;
                 }
@@ -56,8 +69,8 @@ namespace Simulation
                 {
                     cb.ForeColor = Color.Black;
                 }
-                cb.Text = $"Уровень спелости: {field[cb].CurrentGrowth} \n"
-                   + $"Состояние: {field[cb].State}";
+                cb.Text = $"Уровень спелости: {field[_position[cb]].CurrentGrowth} \n"
+                   + $"Состояние: {field[_position[cb]].State}";
             }
             if (flag)
             {
@@ -67,19 +80,23 @@ namespace Simulation
 
         private void DrawField()
         {
-            Dictionary<Button, Cell> field= _gameEngine.Field; 
+            Dictionary<int, Cell> field= _gameEngine.Field; 
             foreach (Button cb in splitContainer1.Panel2.Controls)
             {
-                cb.BackColor = _colors[field[cb].State];
+                cb.BackColor = _colors[field[_position[cb]].State];
             }
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
             Button button = sender as Button;
-            if (_gameEngine.IsNeedToRedrawn(button))
+            if (_gameEngine.IsNeedToRedrawn(_position[button]))
             {
                 DrawField();
+            }
+            else
+            {
+                MessageBox.Show("У вас закончились деньги! Если хотите продолжить, переведите 1 балл на мой аккаунт в GoogleClass");
             }
         }
 
